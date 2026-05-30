@@ -1,42 +1,42 @@
 from flask import Flask, request, jsonify
-import os, requests
-from dotenv import load_dotenv
+import requests
+import os
 
-load_dotenv()
 app = Flask(__name__)
 
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-SECRET_KEY = os.getenv("SECRET_KEY")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
+SECRET = os.getenv("SECRET", "xauusd123")
 
-def send_telegram(text):
+def send_telegram(message):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    data = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML"}
-    requests.post(url, data=data, timeout=10)
+    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "HTML"}
+    requests.post(url, data=payload, timeout=10)
+
+@app.route("/", methods=["GET"])
+def home():
+    return "XAUUSD Signal Bot Running"
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    data = request.json
+    data = request.get_json(silent=True)
 
-    if data.get("secret") != SECRET_KEY:
-        return jsonify({"error": "unauthorized"}), 401
+    if not data or data.get("secret") != SECRET:
+        return jsonify({"error": "Unauthorized"}), 401
 
-    msg = f"""
-📢 <b>Trading Signal</b>
+    message = f"""
+🥇 XAUUSD SIGNAL
 
-Symbol: {data.get('symbol')}
-Signal: {data.get('signal')}
-Entry: {data.get('entry')}
-Target 1: {data.get('target1')}
-Target 2: {data.get('target2')}
-Stoploss: {data.get('stoploss')}
-Timeframe: {data.get('timeframe')}
-
-⚠️ Paper trade first. Not financial advice.
+Signal: {data.get("signal")}
+Entry: {data.get("entry")}
+Stoploss: {data.get("stoploss")}
+Target 1: {data.get("target1")}
+Target 2: {data.get("target2")}
+Timeframe: {data.get("timeframe")}
 """
-    send_telegram(msg)
+    send_telegram(message)
     return jsonify({"status": "sent"})
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
